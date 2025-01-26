@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35013.160
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Water-Generator", "Water-Generator\Water-Generator.vcxproj", "{A62C45E3-F36A-4227-847B-D63B69EE33FD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A62C45E3-F36A-4227-847B-D63B69EE33FD}.Debug|x64.ActiveCfg = Debug|x64
+		{A62C45E3-F36A-4227-847B-D63B69EE33FD}.Debug|x64.Build.0 = Debug|x64
+		{A62C45E3-F36A-4227-847B-D63B69EE33FD}.Debug|x86.ActiveCfg = Debug|Win32
+		{A62C45E3-F36A-4227-847B-D63B69EE33FD}.Debug|x86.Build.0 = Debug|Win32
+		{A62C45E3-F36A-4227-847B-D63B69EE33FD}.Release|x64.ActiveCfg = Release|x64
+		{A62C45E3-F36A-4227-847B-D63B69EE33FD}.Release|x64.Build.0 = Release|x64
+		{A62C45E3-F36A-4227-847B-D63B69EE33FD}.Release|x86.ActiveCfg = Release|Win32
+		{A62C45E3-F36A-4227-847B-D63B69EE33FD}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EF10762B-17B3-4690-ADE2-F2124D1ADD4A}
+	EndGlobalSection
+EndGlobal
