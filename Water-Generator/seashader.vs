@@ -1,6 +1,6 @@
 #version 330 core
 layout (location = 0) in vec3 aPos;
-
+layout (location = 1) in vec3 aNormal;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
@@ -9,10 +9,12 @@ uniform float sea_frequency;
 uniform float sea_amplitude;
 uniform float wave_speed;
 
+out vec3 Normal;
+out vec3 FragPos;
 void main()
 {
     // Use gl_VertexID to compute unique time for each vertex
-    float vertexTime = u_time + gl_VertexID * 0.001f;
+    float vertexTime = u_time + gl_VertexID * 0.01f;
 
     // Create multiple waves with individual time and random variations
     float wave1 = sea_amplitude * sin(aPos.z * (sea_frequency + 0.1f) + vertexTime);
@@ -28,4 +30,6 @@ void main()
     
     // Set the final position of the vertex
     gl_Position = projection * view * model * vec4(aPos.x, displacedY, aPos.z, 1.0);
+    FragPos = vec3(model * vec4(aPos, 1.0));
+    Normal = mat3(transpose(inverse(model))) * aNormal;
 }

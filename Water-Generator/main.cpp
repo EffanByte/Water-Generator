@@ -1,5 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
-
+#define M_PI   3.14159265358979323846264338327950288
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -13,85 +13,89 @@
 #include "stb_image.h"
 #include <shader_m.h>
 #include <iostream>
+#include <math.h>
 #include "noise.h"
 #include <vector>
 
 // Callback to resize the viewport
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
+void framebuffer_size_callback(GLFWwindow* window, int width, int length) {
+    glViewport(0, 0, width, length);
 }
-
 struct Vertex {
-    float x, y, z;
+    float x, y, z;        // Position
+    float nx, ny, nz;     // Normal
 };
 
-std::vector<Vertex> generatePlane(float width, float height, float seaLevel) {
+
+std::vector<Vertex> generatePlane(float width, float length, float seaLevel) {
     std::vector<Vertex> vertices;
-    for (int z = 0; z <= height; ++z) {
+    for (int z = 0; z <= length; ++z) {
         for (int x = 0; x <= width; ++x) {
-            // Map coordinates from 0-width and 0-height to actual plane dimensions
+            // Map coordinates from 0-width and 0-length to actual plane dimensions
             float xPos = (x / static_cast<float>(width)) * width;
-            float zPos = (z / static_cast<float>(height)) * height;
-            vertices.push_back({ xPos - width / 2.0f, seaLevel, zPos - height / 2.0f });
+            float zPos = (z / static_cast<float>(length)) * length;
+
+            // Create vertex with position and normal
+            Vertex vertex;
+            vertex.x = xPos - width / 2.0f;
+            vertex.y = seaLevel;
+            vertex.z = zPos - length / 2.0f;
+            // Normal pointing up along Y-axis
+            vertex.nx = 0.0f;
+            vertex.ny = 1.0f;
+            vertex.nz = 0.0f;
+
+            vertices.push_back(vertex);
         }
     }
     return vertices;
 }
 
-GLuint generatePlaneVAO(std::vector<Vertex>& vertices, std::vector<GLuint>& indices, GLuint& VBO, int width, int height) {
-    // Generate indices for the grid
-
-
-    for (int z = 0; z < height; ++z) {
+GLuint generatePlaneVAO(std::vector<Vertex>& vertices, std::vector<GLuint>& indices, GLuint& VBO, int width, int length) {
+    // Generate indices (same as before)
+    for (int z = 0; z < length; ++z) {
         for (int x = 0; x < width; ++x) {
-            // Indices of the four corners of the current quad
             GLuint topLeft = z * (width + 1) + x;
             GLuint topRight = topLeft + 1;
             GLuint bottomLeft = (z + 1) * (width + 1) + x;
             GLuint bottomRight = bottomLeft + 1;
 
-            // First triangle (top-left, bottom-left, bottom-right)
             indices.push_back(topLeft);
             indices.push_back(bottomLeft);
             indices.push_back(bottomRight);
 
-            // Second triangle (top-left, bottom-right, top-right)
             indices.push_back(topLeft);
             indices.push_back(bottomRight);
             indices.push_back(topRight);
         }
     }
 
-    // Generate and bind VAO
+    // Create and bind VAO
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-    // Generate and bind VBO for vertex data
+    // Create and bind VBO
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-    // Generate and bind EBO for indices
+    // Create and bind EBO
     GLuint EBO;
     glGenBuffers(1, &EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
-    // Specify vertex attribute pointers
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0); // Position attribute
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // Unbind VAO to prevent accidental modification
-    glBindVertexArray(0);
-
-    // Clean up (unbind VBO and EBO)
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    // Normal attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     return VAO;
 }
-
 void updateSeaLevel(std::vector<Vertex>& vertices, float seaLevel, GLuint VBO) {
     for (auto& vertex : vertices) {
         vertex.y = seaLevel; // Update the Y-coordinate to match the new sea level
@@ -103,20 +107,83 @@ void updateSeaLevel(std::vector<Vertex>& vertices, float seaLevel, GLuint VBO) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+// Light source sphere generation
+struct LightSource {
+    glm::vec3 position;
+    glm::vec3 color;
+    float intensity;
+    GLuint VAO;
+    int vertices_count;
+};
+
+std::vector<float> generateSphere(float radius, int sectors, int stacks) {
+    std::vector<float> vertices;
+    float sectorStep = 2 * M_PI / sectors;
+    float stackStep = M_PI / stacks;
+
+    for (int i = 0; i <= stacks; ++i) {
+        float stackAngle = 3.14 / 2 - i * stackStep;
+        float xy = radius * cosf(stackAngle);
+        float z = radius * sinf(stackAngle);
+
+        for (int j = 0; j <= sectors; ++j) {
+            float sectorAngle = j * sectorStep;
+            // Position
+            vertices.push_back(xy * cosf(sectorAngle));  // x
+            vertices.push_back(xy * sinf(sectorAngle));  // y
+            vertices.push_back(z);                       // z
+            // Normal
+            vertices.push_back(xy * cosf(sectorAngle) / radius);
+            vertices.push_back(xy * sinf(sectorAngle) / radius);
+            vertices.push_back(z / radius);
+        }
+    }
+    return vertices;
+}
+
+LightSource createLightSource(glm::vec3 position, glm::vec3 color, float intensity) {
+    LightSource light;
+    light.position = position;
+    light.color = color;
+    light.intensity = intensity;
+
+    // Generate sphere mesh for light source
+    std::vector<float> sphereVertices = generateSphere(0.2f, 20, 20);
+    light.vertices_count = sphereVertices.size() / 6;  // 6 floats per vertex (pos + normal)
+
+    glGenVertexArrays(1, &light.VAO);
+    glBindVertexArray(light.VAO);
+
+    GLuint VBO;
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sphereVertices.size() * sizeof(float), sphereVertices.data(), GL_STATIC_DRAW);
+
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // Normal attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    return light;
+}
+
+
 unsigned int loadCubemap(std::vector<std::string> faces)
 {
     unsigned int textureID;
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
-    int width, height, nrChannels;
+    int width, length, nrChannels;
     for (unsigned int i = 0; i < faces.size(); i++)
     {
-        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        unsigned char* data = stbi_load(faces[i].c_str(), &width, &length, &nrChannels, 0);
         if (data)
         {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+                0, GL_RGB, width, length, 0, GL_RGB, GL_UNSIGNED_BYTE, data
             );
             stbi_image_free(data);
         }
@@ -153,18 +220,18 @@ void initImGui(GLFWwindow* window) {
 int octaves = 4;
 float persistence = 0.5f;
 int width = 256;
-int height = 256;
+int length = 256;
 float frequency = 2.0f;
 int scale = 50;
-float heightScale = 10.0f;
+float lengthScale = 10.0f;
 float lacunarity = 2.0f;
-float seaLevel = 0.0f;
+float seaLevel = -10.0f;
 
 // Water variables (Change them to uniforms later?)
 bool updateSea = false;
 float seaFrequency = 0.2f; //median value
 float seaAmplitude = 0.5f; // median value
-float waveSpeed = 0.001f;    // median value
+float waveSpeed = 1.0f;    // median value
 int waveCount = 4;
 float u_time;
 
@@ -323,8 +390,8 @@ int main() {
 
     // Shader setup (place the shaders in the same directory)
     Shader skyshader("skyshader.vs", "skyshader.fs");
-    Shader noiseshader("noiseshader.vs", "noiseshader.fs");
     Shader seashader("seashader.vs", "seashader.fs");
+    Shader lightshader("lightshader.vs", "lightshader.fs");
 
     // Cube vertices
     float skyboxVertices[] = {
@@ -397,13 +464,18 @@ int main() {
     skyshader.use();
     skyshader.setInt("skybox", 0);
 
+
     float planeWidth = width;
-    float planeHeight = height;
-    std::vector<Vertex> planeVertices = generatePlane(planeWidth, planeHeight, seaLevel);
+    float planelength = length;
+    std::vector<Vertex> planeVertices = generatePlane(planeWidth, planelength, seaLevel);
     std::vector<GLuint> planeIndices;
     GLuint planeVBO;
 
-    GLuint planeVAO = generatePlaneVAO(planeVertices, planeIndices, planeVBO, width, height);
+    GLuint planeVAO = generatePlaneVAO(planeVertices, planeIndices, planeVBO, width, length);
+
+    lightshader.use();
+
+    LightSource light = createLightSource(glm::vec3(0, 50.0f, 0), glm::vec3(0.5, 0.5, 0.5), 1.0f);
 
     // Background color     
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -447,11 +519,28 @@ int main() {
         // draw skybox as last
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
 
+        lightshader.use();
+        glm::mat4 lightModel = glm::mat4(1.0f);
+        lightModel = glm::translate(lightModel, light.position);
+        glUniformMatrix4fv(glGetUniformLocation(lightshader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(glGetUniformLocation(lightshader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(lightshader.ID, "model"), 1, GL_FALSE, glm::value_ptr(lightModel));
+        glUniform3fv(glGetUniformLocation(lightshader.ID, "lightColor"), 1, glm::value_ptr(light.color));
+
+        glBindVertexArray(light.VAO);
+        glDrawArrays(GL_TRIANGLES, 0, light.vertices_count);
+
         seashader.use();
 
         u_time = glfwGetTime();
         glUniform1f(glGetUniformLocation(seashader.ID, "u_time"), u_time);
+        glUniform3fv(glGetUniformLocation(seashader.ID, "lightPos"), 1, glm::value_ptr(light.position));
+        glUniform3fv(glGetUniformLocation(seashader.ID, "lightColor"), 1, glm::value_ptr(light.color));
+        glUniform1f(glGetUniformLocation(seashader.ID, "lightIntensity"), light.intensity);
+        glUniform3fv(glGetUniformLocation(seashader.ID, "viewPos"), 1, glm::value_ptr(view));
 
+        glm::vec3 planeColor(0.2f, 0.6f, 0.9f);
+        glUniform3fv(glGetUniformLocation(seashader.ID, "objectColor"), 1, glm::value_ptr(planeColor));
         if (updateSea) {
             // Re-apply sea generation uniforms
             glUniform1f(glGetUniformLocation(seashader.ID, "seaLevel"), seaLevel);

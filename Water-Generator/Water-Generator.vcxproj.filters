@@ -46,4 +46,14 @@
       <Filter>Source Files\imgui</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="seashader.vs">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="seashader.fs">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="lightshader.vs" />
+    <None Include="lightshader.fs" />
+  </ItemGroup>
 </Project>

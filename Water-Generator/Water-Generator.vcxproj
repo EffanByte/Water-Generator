@@ -149,6 +149,12 @@
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="lightshader.fs" />
+    <None Include="lightshader.vs" />
+    <None Include="seashader.fs" />
+    <None Include="seashader.vs" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
