@@ -21,26 +21,24 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int length) {
     glViewport(0, 0, width, length);
 }
+// Vertex structure
 struct Vertex {
     float x, y, z;        // Position
     float nx, ny, nz;     // Normal
 };
 
-
-std::vector<Vertex> generatePlane(float width, float length, float seaLevel) {
+// Function to generate a plane's vertices
+std::vector<Vertex> generatePlane(int width, int length, float seaLevel) {
     std::vector<Vertex> vertices;
     for (int z = 0; z <= length; ++z) {
         for (int x = 0; x <= width; ++x) {
-            // Map coordinates from 0-width and 0-length to actual plane dimensions
             float xPos = (x / static_cast<float>(width)) * width;
             float zPos = (z / static_cast<float>(length)) * length;
 
-            // Create vertex with position and normal
             Vertex vertex;
             vertex.x = xPos - width / 2.0f;
             vertex.y = seaLevel;
             vertex.z = zPos - length / 2.0f;
-            // Normal pointing up along Y-axis
             vertex.nx = 0.0f;
             vertex.ny = 1.0f;
             vertex.nz = 0.0f;
@@ -51,8 +49,12 @@ std::vector<Vertex> generatePlane(float width, float length, float seaLevel) {
     return vertices;
 }
 
-GLuint generatePlaneVAO(std::vector<Vertex>& vertices, std::vector<GLuint>& indices, GLuint& VBO, int width, int length) {
-    // Generate indices (same as before)
+// Function to generate the plane's VAO and return VAO & VBO
+GLuint generatePlaneVAO(std::vector<Vertex>& vertices, std::vector<GLuint>& indices, GLuint& VBO) {
+    // Generate indices for the plane
+    int width = static_cast<int>(sqrt(vertices.size())) - 1;
+    int length = static_cast<int>(vertices.size() / (width + 1)) - 1;
+
     for (int z = 0; z < length; ++z) {
         for (int x = 0; x < width; ++x) {
             GLuint topLeft = z * (width + 1) + x;
@@ -70,41 +72,44 @@ GLuint generatePlaneVAO(std::vector<Vertex>& vertices, std::vector<GLuint>& indi
         }
     }
 
-    // Create and bind VAO
+    // Generate VAO
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-    // Create and bind VBO
+    // Generate VBO
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-    // Create and bind EBO
+    // Generate EBO
     GLuint EBO;
     glGenBuffers(1, &EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
-    // Position attribute
+    // Define vertex attributes
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // Normal attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    glBindVertexArray(0); // Unbind VAO
     return VAO;
 }
-void updateSeaLevel(std::vector<Vertex>& vertices, float seaLevel, GLuint VBO) {
+
+// Function to update sea level
+void updateSeaLevel(std::vector<Vertex>& vertices, float seaLevel, GLuint VAO, GLuint VBO) {
     for (auto& vertex : vertices) {
-        vertex.y = seaLevel; // Update the Y-coordinate to match the new sea level
+        vertex.y = seaLevel;
     }
 
-    // Update the VBO with the new vertex data
+    glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(Vertex), vertices.data());
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 }
 
 // Light source sphere generation
@@ -148,7 +153,7 @@ LightSource createLightSource(glm::vec3 position, glm::vec3 color, float intensi
     light.intensity = intensity;
 
     // Generate sphere mesh for light source
-    std::vector<float> sphereVertices = generateSphere(0.2f, 20, 20);
+    std::vector<float> sphereVertices = generateSphere(20.0f, 50, 50);
     light.vertices_count = sphereVertices.size() / 6;  // 6 floats per vertex (pos + normal)
 
     glGenVertexArrays(1, &light.VAO);
@@ -390,6 +395,8 @@ int main() {
 
     // Shader setup (place the shaders in the same directory)
     Shader skyshader("skyshader.vs", "skyshader.fs");
+  //  Shader seashader("seashader.vs", "seashader.fs", "seashader.gs");
+    Shader normalshader("normalshader.vs", "normalshader.fs", "normalshader.gs");
     Shader seashader("seashader.vs", "seashader.fs");
     Shader lightshader("lightshader.vs", "lightshader.fs");
 
@@ -471,11 +478,11 @@ int main() {
     std::vector<GLuint> planeIndices;
     GLuint planeVBO;
 
-    GLuint planeVAO = generatePlaneVAO(planeVertices, planeIndices, planeVBO, width, length);
+    GLuint planeVAO = generatePlaneVAO(planeVertices, planeIndices, planeVBO);
 
     lightshader.use();
 
-    LightSource light = createLightSource(glm::vec3(0, 50.0f, 0), glm::vec3(0.5, 0.5, 0.5), 1.0f);
+    LightSource light = createLightSource(glm::vec3(100,100,100), glm::vec3(0.5, 0.5, 0.5), 5.0f);
 
     // Background color     
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -483,7 +490,7 @@ int main() {
     // Register mouse callback
     glfwSetCursorPosCallback(window, mouse_callback);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     initImGui(window);
 
@@ -550,17 +557,23 @@ int main() {
             glUniform1f(glGetUniformLocation(seashader.ID, "wave_count"), waveCount);
 
             // Update sea level vertices
-            updateSeaLevel(planeVertices, seaLevel, planeVBO);
+            updateSeaLevel(planeVertices, seaLevel, planeVAO, planeVBO);
 
             // Reset the flag
             updateSea = false;
         }
 
+        seashader.use();
         // Bind the VAO and draw the plane
         glBindVertexArray(planeVAO);
         glDrawElements(GL_TRIANGLES, planeIndices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
+        // Draw the normals
+      //  normalshader.use();
+      //  glBindVertexArray(planeVAO);
+      //  glDrawArrays(GL_POINTS, 0, planeIndices.size());
+      //  glBindVertexArray(0);
 
         glUniformMatrix4fv(glGetUniformLocation(seashader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(seashader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));

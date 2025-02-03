@@ -152,8 +152,15 @@
   <ItemGroup>
     <None Include="lightshader.fs" />
     <None Include="lightshader.vs" />
+    <None Include="normalshader.fs" />
+    <None Include="normalshader.gs" />
+    <None Include="normalshader.vs" />
     <None Include="seashader.fs" />
+    <None Include="seashader.gs" />
     <None Include="seashader.vs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\shader_m.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

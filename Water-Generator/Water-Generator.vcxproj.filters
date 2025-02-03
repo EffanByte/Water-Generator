@@ -55,5 +55,14 @@
     </None>
     <None Include="lightshader.vs" />
     <None Include="lightshader.fs" />
+    <None Include="seashader.gs" />
+    <None Include="normalshader.vs" />
+    <None Include="normalshader.fs" />
+    <None Include="normalshader.gs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\shader_m.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
