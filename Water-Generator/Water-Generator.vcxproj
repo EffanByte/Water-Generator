@@ -158,6 +158,7 @@
     <None Include="seashader.fs" />
     <None Include="seashader.gs" />
     <None Include="seashader.vs" />
+    <None Include="seashadernogs.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\shader_m.h" />

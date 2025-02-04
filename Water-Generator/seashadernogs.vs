@@ -1,6 +1,5 @@
 #version 330 core
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -10,14 +9,11 @@ uniform float u_time;
 uniform float sea_frequency;
 uniform float sea_amplitude;
 
-out VS_OUT {
-    vec3 normal;       // World-space normal
-    vec3 displacedPos; // World-space displaced position
-    vec3 originalPos;  // World-space original position
-} vs_out;
-
+out vec3 FragNormal;
+out vec3 vFragPos;
 void main()
-{  
+{ 
+    mat3 normalMatrix = mat3(transpose(inverse(model)));
     // Use gl_VertexID to compute unique time for each vertex
     float vertexTime = u_time;
 
@@ -29,20 +25,22 @@ void main()
     float wave = wave1 + wave2 + wave3 + wave4;
 
     // Compute numerical derivative for normal approximation
-    vec3 dx = vec3(1.0, cos(aPos.z * sea_frequency + vertexTime), 0.0);
-    vec3 dz = vec3(0.0, cos(aPos.x * sea_frequency + vertexTime), 1.0);
-    vec3 normal = normalize(cross(dx, dz));
+    float delta = 0.1;
+    float wave_dx = sea_amplitude * sin((aPos.z + delta) * (sea_frequency + 0.1f) + (aPos.x + delta) * 0.3f + vertexTime) - wave;
+    float wave_dz = sea_amplitude * sin((aPos.x + delta) * (sea_frequency + 0.15f) + vertexTime * 0.8f) - wave;
+
+    vec3 tangentX = normalize(vec3(delta, wave_dx, 0.0));
+    vec3 tangentZ = normalize(vec3(0.0, wave_dz, delta));
+    vec3 updatedNormal = normalize(cross(tangentX, tangentZ));
 
     // Compute world-space positions
     vec3 displacedPosition = vec3(aPos.x, aPos.y + wave, aPos.z);
     vec3 worldDisplacedPos = vec3(model * vec4(displacedPosition, 1.0));
     vec3 worldOriginalPos = vec3(model * vec4(aPos, 1.0));
 
-    // Pass data to the geometry shader
-    vs_out.normal = mat3(transpose(inverse(model))) * normal; // Convert normal to world space
-    vs_out.displacedPos = worldDisplacedPos;
-    vs_out.originalPos = worldOriginalPos;
-
+    // Pass updated normal to the geometry shader
+    FragNormal = normalize(normalMatrix * updatedNormal);
+    vFragPos = vec3(model * vec4(displacedPosition, 1.0));
     // Compute final position in clip space
     gl_Position = projection * view * vec4(worldDisplacedPos, 1.0);
 }

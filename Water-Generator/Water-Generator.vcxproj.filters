@@ -59,6 +59,7 @@
     <None Include="normalshader.vs" />
     <None Include="normalshader.fs" />
     <None Include="normalshader.gs" />
+    <None Include="seashadernogs.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\shader_m.h">

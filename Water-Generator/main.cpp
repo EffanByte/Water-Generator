@@ -14,6 +14,7 @@
 #include <shader_m.h>
 #include <iostream>
 #include <math.h>
+#include <math.h>
 #include "noise.h"
 #include <vector>
 
@@ -89,11 +90,8 @@ GLuint generatePlaneVAO(std::vector<Vertex>& vertices, std::vector<GLuint>& indi
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
     // Define vertex attributes
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
 
     glBindVertexArray(0); // Unbind VAO
     return VAO;
@@ -231,6 +229,9 @@ int scale = 50;
 float lengthScale = 10.0f;
 float lacunarity = 2.0f;
 float seaLevel = -10.0f;
+bool renderingMode = true;
+float testVar = 0.5;
+glm::vec3 lightDir = glm::vec3(0.5, 0.5, testVar);
 
 // Water variables (Change them to uniforms later?)
 bool updateSea = false;
@@ -260,6 +261,8 @@ void renderImGuiMenu() {
     ImGui::SliderFloat("Sea Amplitude", &seaAmplitude, 0.0f, 2.0f);
     ImGui::SliderFloat("Wave Speed", &waveSpeed, 0.0f, 0.01f);
     ImGui::SliderInt("Wave Count", &waveCount, 1, 10);
+    ImGui::SliderFloat("Light Dir", &testVar, -1.0, 1.0);
+    ImGui::Checkbox("Rendering Mode", &renderingMode);
 
     if (oldSeaLevel != seaLevel || oldSeaAmplitude != seaAmplitude || oldSeaFrequency != seaFrequency || oldWaveSpeed != waveSpeed
         || oldWaveCount != waveCount)
@@ -396,8 +399,8 @@ int main() {
     // Shader setup (place the shaders in the same directory)
     Shader skyshader("skyshader.vs", "skyshader.fs");
   //  Shader seashader("seashader.vs", "seashader.fs", "seashader.gs");
-    Shader normalshader("normalshader.vs", "normalshader.fs", "normalshader.gs");
-    Shader seashader("seashader.vs", "seashader.fs");
+  //  Shader normalshader("normalshader.vs", "normalshader.fs", "normalshader.gs");
+   Shader seashader("seashadernogs.vs", "seashader.fs");
     Shader lightshader("lightshader.vs", "lightshader.fs");
 
     // Cube vertices
@@ -490,7 +493,7 @@ int main() {
     // Register mouse callback
     glfwSetCursorPosCallback(window, mouse_callback);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     initImGui(window);
 
@@ -538,6 +541,18 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, light.vertices_count);
 
         seashader.use();
+        seashader.setVec3("lightDir", glm::vec3(0.5,0.7,0.3)); // Light position
+        seashader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f)); // White light
+        seashader.setFloat("lightIntensity", 1.0f);
+
+        seashader.setVec3("viewPos", cameraPos); // Pass camera position
+
+        // Material properties
+        seashader.setVec3("objectColor", glm::vec3(0.2f, 0.6f, 0.9f)); // Water color
+        seashader.setFloat("ambientStrength", 0.3f);
+        seashader.setFloat("diffuseStrength", 0.6f);
+        seashader.setFloat("specularStrength", 0.3f);
+        seashader.setFloat("shininess", 64.0f);
 
         u_time = glfwGetTime();
         glUniform1f(glGetUniformLocation(seashader.ID, "u_time"), u_time);
@@ -545,10 +560,10 @@ int main() {
         glUniform3fv(glGetUniformLocation(seashader.ID, "lightColor"), 1, glm::value_ptr(light.color));
         glUniform1f(glGetUniformLocation(seashader.ID, "lightIntensity"), light.intensity);
         glUniform3fv(glGetUniformLocation(seashader.ID, "viewPos"), 1, glm::value_ptr(view));
-
+        glUniform1f(glGetUniformLocation(seashader.ID, "Dir"), testVar);
+        glUniform1i(glGetUniformLocation(seashader.ID, "u_showNormals"), renderingMode);
         glm::vec3 planeColor(0.2f, 0.6f, 0.9f);
         glUniform3fv(glGetUniformLocation(seashader.ID, "objectColor"), 1, glm::value_ptr(planeColor));
-        if (updateSea) {
             // Re-apply sea generation uniforms
             glUniform1f(glGetUniformLocation(seashader.ID, "seaLevel"), seaLevel);
             glUniform1f(glGetUniformLocation(seashader.ID, "seafrequency"), seaFrequency);
@@ -559,31 +574,21 @@ int main() {
             // Update sea level vertices
             updateSeaLevel(planeVertices, seaLevel, planeVAO, planeVBO);
 
-            // Reset the flag
-            updateSea = false;
-        }
-
         seashader.use();
         // Bind the VAO and draw the plane
         glBindVertexArray(planeVAO);
         glDrawElements(GL_TRIANGLES, planeIndices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
-        // Draw the normals
-      //  normalshader.use();
-      //  glBindVertexArray(planeVAO);
-      //  glDrawArrays(GL_POINTS, 0, planeIndices.size());
-      //  glBindVertexArray(0);
-
-        glUniformMatrix4fv(glGetUniformLocation(seashader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix4fv(glGetUniformLocation(seashader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(glGetUniformLocation(seashader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        seashader.setMat4("model", model);
+        seashader.setMat4("view", view);
+        seashader.setMat4("projection", projection);
 
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
         skyshader.use();
         view = glm::mat4(glm::mat3(view)); // remove translation from the view matrix
-        glUniformMatrix4fv(glGetUniformLocation(skyshader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(glGetUniformLocation(skyshader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        skyshader.setMat4("projection", projection);
+        skyshader.setMat4("view", view);
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
         glBindVertexArray(skyboxVAO);
         glActiveTexture(GL_TEXTURE0);
