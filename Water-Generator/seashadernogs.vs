@@ -23,7 +23,7 @@ void main()
     float wave2 = (sea_amplitude * 0.8f) * sin(aPos.x * (sea_frequency + 0.15f) + vertexTime * wave_speed);
     float wave3 = (sea_amplitude * 0.9f) * sin(aPos.z * (sea_frequency + 0.2f) + vertexTime * wave_speed);
     float wave4 = (sea_amplitude * 0.6f) * sin(aPos.x * (sea_frequency + 0.05f) + vertexTime * wave_speed);
-        // **New Additional Waves**
+    // **New Additional Waves**
     float wave5 = (sea_amplitude * 0.7f) * sin((aPos.x + aPos.z) * (sea_frequency + 0.08f) + u_time * wave_speed * 1.2);
     float wave6 = (sea_amplitude * 0.5f) * sin((aPos.x - aPos.z) * (sea_frequency + 0.12f) + u_time * wave_speed * 0.8);
     float wave7 = (sea_amplitude * 0.4f) * sin((aPos.x * 0.5f + aPos.z * 0.5f) * (sea_frequency + 0.18f) + u_time * wave_speed * 1.5);
@@ -47,14 +47,12 @@ void main()
     // Compute normal using the gradient
     vec3 updatedNormal = normalize(vec3(-dHx, 1.0, -dHz));
 
- //   vec3 updatedNormal = normalize(cross(tangentX, tangentZ));
 
     // Compute world-space positions
     vec3 displacedPosition = vec3(aPos.x, aPos.y + wave, aPos.z);
     vec3 worldDisplacedPos = vec3(model * vec4(displacedPosition, 1.0));
     vec3 worldOriginalPos = vec3(model * vec4(aPos, 1.0));
 
-    // Pass updated normal to the geometry shader
     FragNormal = normalize(normalMatrix * updatedNormal);
     vFragPos = vec3(model * vec4(displacedPosition, 1.0));
     // Compute final position in clip space

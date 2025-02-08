@@ -541,35 +541,38 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, light.vertices_count);
 
         seashader.use();
-        seashader.setVec3("lightDir", glm::vec3(0.5,0.7,0.3)); // Light position
+      //  seashader.setVec3("lightDir", glm::vec3(0.5,0.7,0.3)); // Light position
         seashader.setVec3("lightColor", glm::vec3(1.0f, 0.87f, 0.52f)); // White light
         seashader.setFloat("lightIntensity", 0.3f);
 
         seashader.setVec3("viewPos", cameraPos); // Pass camera position
+        seashader.setVec3("ViewDirection", cameraFront);
 
         // Material properties
         seashader.setVec3("objectColor", glm::vec3(0.5f, 0.737f, 0.87f)); // Water color
         seashader.setFloat("ambientStrength", 0.3f);
         seashader.setFloat("diffuseStrength", 0.4f);
-        seashader.setFloat("specularStrength", 0.1f);
+        seashader.setFloat("specularStrength", 0.75f);
         seashader.setFloat("shininess", 64.0f);
 
         u_time = glfwGetTime();
-        glUniform1f(glGetUniformLocation(seashader.ID, "u_time"), u_time);
-        glUniform3fv(glGetUniformLocation(seashader.ID, "lightPos"), 1, glm::value_ptr(light.position));
-        glUniform3fv(glGetUniformLocation(seashader.ID, "lightColor"), 1, glm::value_ptr(light.color));
-        glUniform1f(glGetUniformLocation(seashader.ID, "lightIntensity"), light.intensity);
-        glUniform3fv(glGetUniformLocation(seashader.ID, "viewPos"), 1, glm::value_ptr(view));
-        glUniform1f(glGetUniformLocation(seashader.ID, "Dir"), testVar);
-        glUniform1i(glGetUniformLocation(seashader.ID, "u_showNormals"), renderingMode);
+        seashader.setFloat("u_time", u_time);
+        seashader.setVec3("lightPos", light.position);
+        seashader.setVec3("lightColor", light.color);
+        seashader.setFloat("lightIntensity", light.intensity);
+        seashader.setMat4("viewPos", view);  // Use the camera's world-space position here
+        seashader.setFloat("Dir", testVar);
+        seashader.setInt("u_showNormals", renderingMode);
+
         glm::vec3 planeColor(0.2f, 0.6f, 0.9f);
-        glUniform3fv(glGetUniformLocation(seashader.ID, "objectColor"), 1, glm::value_ptr(planeColor));
-            // Re-apply sea generation uniforms
-            glUniform1f(glGetUniformLocation(seashader.ID, "seaLevel"), seaLevel);
-            glUniform1f(glGetUniformLocation(seashader.ID, "sea_frequency"), seaFrequency);
-            glUniform1f(glGetUniformLocation(seashader.ID, "wave_speed"), waveSpeed);
-            glUniform1f(glGetUniformLocation(seashader.ID, "sea_amplitude"), seaAmplitude);
-            glUniform1f(glGetUniformLocation(seashader.ID, "wave_count"), waveCount);
+        seashader.setVec3("objectColor", planeColor);
+
+        // Re-apply sea generation uniforms
+        seashader.setFloat("seaLevel", seaLevel);
+        seashader.setFloat("sea_frequency", seaFrequency);
+        seashader.setFloat("wave_speed", waveSpeed);
+        seashader.setFloat("sea_amplitude", seaAmplitude);
+        seashader.setFloat("wave_count", waveCount);
 
             // Update sea level vertices
             updateSeaLevel(planeVertices, seaLevel, planeVAO, planeVBO);
