@@ -8,6 +8,7 @@ uniform mat4 projection;
 uniform float u_time;
 uniform float sea_frequency;
 uniform float sea_amplitude;
+uniform float wave_speed;
 
 out vec3 FragNormal;
 out vec3 vFragPos;
@@ -19,19 +20,34 @@ void main()
 
     // Compute wave displacement
     float wave1 = sea_amplitude * sin(aPos.z * (sea_frequency + 0.1f) + aPos.x * 0.3f + vertexTime);
-    float wave2 = (sea_amplitude * 0.8f) * sin(aPos.x * (sea_frequency + 0.15f) + vertexTime * 0.8f);
-    float wave3 = (sea_amplitude * 0.9f) * sin(aPos.z * (sea_frequency + 0.2f) + vertexTime * 1.5f);
-    float wave4 = (sea_amplitude * 0.6f) * sin(aPos.x * (sea_frequency + 0.05f) + vertexTime * 2.0f);
-    float wave = wave1 + wave2 + wave3 + wave4;
+    float wave2 = (sea_amplitude * 0.8f) * sin(aPos.x * (sea_frequency + 0.15f) + vertexTime * wave_speed);
+    float wave3 = (sea_amplitude * 0.9f) * sin(aPos.z * (sea_frequency + 0.2f) + vertexTime * wave_speed);
+    float wave4 = (sea_amplitude * 0.6f) * sin(aPos.x * (sea_frequency + 0.05f) + vertexTime * wave_speed);
+        // **New Additional Waves**
+    float wave5 = (sea_amplitude * 0.7f) * sin((aPos.x + aPos.z) * (sea_frequency + 0.08f) + u_time * wave_speed * 1.2);
+    float wave6 = (sea_amplitude * 0.5f) * sin((aPos.x - aPos.z) * (sea_frequency + 0.12f) + u_time * wave_speed * 0.8);
+    float wave7 = (sea_amplitude * 0.4f) * sin((aPos.x * 0.5f + aPos.z * 0.5f) * (sea_frequency + 0.18f) + u_time * wave_speed * 1.5);
+    
+    float wave = wave1 + wave2 + wave3 + wave4 + wave5 + wave6 + wave7;
 
-    // Compute numerical derivative for normal approximation
-    float delta = 0.1;
-    float wave_dx = sea_amplitude * sin((aPos.z + delta) * (sea_frequency + 0.1f) + (aPos.x + delta) * 0.3f + vertexTime) - wave;
-    float wave_dz = sea_amplitude * sin((aPos.x + delta) * (sea_frequency + 0.15f) + vertexTime * 0.8f) - wave;
+    // **Compute Partial Derivatives (dH/dx and dH/dz)**
+    float dHx = sea_amplitude * (0.3f * cos(aPos.z * (sea_frequency + 0.1f) + aPos.x * 0.3f + u_time)) +
+                (sea_amplitude * 0.8f) * ((sea_frequency + 0.15f) * cos(aPos.x * (sea_frequency + 0.15f) + u_time * wave_speed)) +
+                (sea_amplitude * 0.6f) * ((sea_frequency + 0.05f) * cos(aPos.x * (sea_frequency + 0.05f) + u_time * wave_speed)) +
+                (sea_amplitude * 0.7f) * ((sea_frequency + 0.08f) * cos((aPos.x + aPos.z) * (sea_frequency + 0.08f) + u_time * wave_speed * 1.2)) +
+                (sea_amplitude * 0.5f) * ((sea_frequency + 0.12f) * cos((aPos.x - aPos.z) * (sea_frequency + 0.12f) + u_time * wave_speed * 0.8)) +
+                (sea_amplitude * 0.4f * 0.5f) * ((sea_frequency + 0.18f) * cos((aPos.x * 0.5f + aPos.z * 0.5f) * (sea_frequency + 0.18f) + u_time * wave_speed * 1.5));
 
-    vec3 tangentX = normalize(vec3(delta, wave_dx, 0.0));
-    vec3 tangentZ = normalize(vec3(0.0, wave_dz, delta));
-    vec3 updatedNormal = normalize(cross(tangentX, tangentZ));
+    float dHz = sea_amplitude * ((sea_frequency + 0.1f) * cos(aPos.z * (sea_frequency + 0.1f) + aPos.x * 0.3f + u_time)) +
+                (sea_amplitude * 0.9f) * ((sea_frequency + 0.2f) * cos(aPos.z * (sea_frequency + 0.2f) + u_time * wave_speed)) +
+                (sea_amplitude * 0.7f) * ((sea_frequency + 0.08f) * cos((aPos.x + aPos.z) * (sea_frequency + 0.08f) + u_time * wave_speed * 1.2)) +
+                (-sea_amplitude * 0.5f) * ((sea_frequency + 0.12f) * cos((aPos.x - aPos.z) * (sea_frequency + 0.12f) + u_time * wave_speed * 0.8)) +
+                (sea_amplitude * 0.4f * 0.5f) * ((sea_frequency + 0.18f) * cos((aPos.x * 0.5f + aPos.z * 0.5f) * (sea_frequency + 0.18f) + u_time * wave_speed * 1.5));
+
+    // Compute normal using the gradient
+    vec3 updatedNormal = normalize(vec3(-dHx, 1.0, -dHz));
+
+ //   vec3 updatedNormal = normalize(cross(tangentX, tangentZ));
 
     // Compute world-space positions
     vec3 displacedPosition = vec3(aPos.x, aPos.y + wave, aPos.z);

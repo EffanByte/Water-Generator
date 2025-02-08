@@ -259,7 +259,7 @@ void renderImGuiMenu() {
     ImGui::SliderFloat("Sea Level", &seaLevel, -25.0f, 10.0f);
     ImGui::SliderFloat("Sea Frequency", &seaFrequency, 0.0f, 1.0f);
     ImGui::SliderFloat("Sea Amplitude", &seaAmplitude, 0.0f, 2.0f);
-    ImGui::SliderFloat("Wave Speed", &waveSpeed, 0.0f, 0.01f);
+    ImGui::SliderFloat("Wave Speed", &waveSpeed, 0.0f, 10.0f);
     ImGui::SliderInt("Wave Count", &waveCount, 1, 10);
     ImGui::SliderFloat("Light Dir", &testVar, -1.0, 1.0);
     ImGui::Checkbox("Rendering Mode", &renderingMode);
@@ -398,9 +398,9 @@ int main() {
 
     // Shader setup (place the shaders in the same directory)
     Shader skyshader("skyshader.vs", "skyshader.fs");
-  //  Shader seashader("seashader.vs", "seashader.fs", "seashader.gs");
-  //  Shader normalshader("normalshader.vs", "normalshader.fs", "normalshader.gs");
-   Shader seashader("seashadernogs.vs", "seashader.fs");
+//    Shader seashader("seashader.vs", "seashader.fs", "seashader.gs");
+ //   Shader normalshader("normalshader.vs", "normalshader.fs", "normalshader.gs");
+  Shader seashader("seashadernogs.vs", "seashader.fs");
     Shader lightshader("lightshader.vs", "lightshader.fs");
 
     // Cube vertices
@@ -485,7 +485,7 @@ int main() {
 
     lightshader.use();
 
-    LightSource light = createLightSource(glm::vec3(100,100,100), glm::vec3(0.5, 0.5, 0.5), 5.0f);
+    LightSource light = createLightSource(glm::vec3(256,256,50), glm::vec3(0.5,0.5,0.5), 1.0f);
 
     // Background color     
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -542,16 +542,16 @@ int main() {
 
         seashader.use();
         seashader.setVec3("lightDir", glm::vec3(0.5,0.7,0.3)); // Light position
-        seashader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f)); // White light
-        seashader.setFloat("lightIntensity", 1.0f);
+        seashader.setVec3("lightColor", glm::vec3(1.0f, 0.87f, 0.52f)); // White light
+        seashader.setFloat("lightIntensity", 0.3f);
 
         seashader.setVec3("viewPos", cameraPos); // Pass camera position
 
         // Material properties
-        seashader.setVec3("objectColor", glm::vec3(0.2f, 0.6f, 0.9f)); // Water color
+        seashader.setVec3("objectColor", glm::vec3(0.5f, 0.737f, 0.87f)); // Water color
         seashader.setFloat("ambientStrength", 0.3f);
-        seashader.setFloat("diffuseStrength", 0.6f);
-        seashader.setFloat("specularStrength", 0.3f);
+        seashader.setFloat("diffuseStrength", 0.4f);
+        seashader.setFloat("specularStrength", 0.1f);
         seashader.setFloat("shininess", 64.0f);
 
         u_time = glfwGetTime();
@@ -566,7 +566,7 @@ int main() {
         glUniform3fv(glGetUniformLocation(seashader.ID, "objectColor"), 1, glm::value_ptr(planeColor));
             // Re-apply sea generation uniforms
             glUniform1f(glGetUniformLocation(seashader.ID, "seaLevel"), seaLevel);
-            glUniform1f(glGetUniformLocation(seashader.ID, "seafrequency"), seaFrequency);
+            glUniform1f(glGetUniformLocation(seashader.ID, "sea_frequency"), seaFrequency);
             glUniform1f(glGetUniformLocation(seashader.ID, "wave_speed"), waveSpeed);
             glUniform1f(glGetUniformLocation(seashader.ID, "sea_amplitude"), seaAmplitude);
             glUniform1f(glGetUniformLocation(seashader.ID, "wave_count"), waveCount);
